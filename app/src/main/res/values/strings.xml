@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">MyPoll</string>
+    <string name="create_a_poll">Create A Poll</string>
+    <string name="vote_for_a_poll">find an existing poll and vote</string>
+    <string name="title_activity_create_poll">CreatePollActivity</string>
+    <string name="add_option">+Add</string>
+    <string name="question_prompt">Type your question here !</string>
+    <string name="submit">Submit</string>
+</resources>
