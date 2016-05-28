@@ -1,5 +1,6 @@
 package com.uclacsm117.mysimlpepoll;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.net.Uri;
@@ -15,10 +16,12 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-
+import android.widget.Toast;
 import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.common.api.GoogleApiClient;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 
 import java.util.*;
 
@@ -29,6 +32,15 @@ public class CreatePollActivity extends AppCompatActivity {
      * See https://g.co/AppIndexing/AndroidStudio for more information.
      */
 
+    private static final int REQUEST_CONNECT_DEVICE = 1;
+
+
+
+
+    private BluetoothAdapter mBluetoothAdapter;
+
+    private static final int REQUEST_ENABLE_BT = 3;
+
     private class MapNode{
         public MapNode(LinearLayout l, EditText t){
             this.container = l;
@@ -38,9 +50,13 @@ public class CreatePollActivity extends AppCompatActivity {
         EditText text;
     }
 
+    private ArrayList<BluetoothDevice> m_device_list = new ArrayList<BluetoothDevice>();
+
     private GoogleApiClient client;
 
     private HashMap<Button,MapNode> button_container_map = new HashMap<Button,MapNode>();
+
+    private ArrayList<String> selected_device_mac_addresses;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -119,5 +135,71 @@ public class CreatePollActivity extends AppCompatActivity {
 
         main_create_poll.addView(display_msg);
 
+        setupBluetooth();
+
+
+
     }
+
+
+
+    public void setupBluetooth(){
+        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (mBluetoothAdapter == null) {
+
+            Toast.makeText(getApplicationContext(), "Bluetooth is not available", Toast.LENGTH_LONG).show();
+            finish();
+        }
+        else{
+            if (!mBluetoothAdapter.isEnabled()) {
+                Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+            }
+            else{
+                Intent serverIntent = new Intent(getApplicationContext(), GetDevice.class);
+                startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
+            }
+        }
+
+    }
+
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case REQUEST_CONNECT_DEVICE:
+
+                // When DeviceListActivity returns with a device to connect
+                if (resultCode == Activity.RESULT_OK) {
+                    this.selected_device_mac_addresses = data.getExtras().getStringArrayList(GetDevice.SELECTED_MAC_ADDRESSES);
+                    EditText display_msg = new EditText(this);
+                    String addresses_string = "\n";
+                    for(String a: this.selected_device_mac_addresses){
+                        addresses_string = addresses_string + a + "\n";
+                    }
+                    display_msg.setText(addresses_string);
+                    display_msg.setKeyListener(null);
+                    LinearLayout main_create_poll = (LinearLayout) findViewById(R.id.main_create_poll);
+
+                    main_create_poll.addView(display_msg);
+                }
+                break;
+            case REQUEST_ENABLE_BT:
+                // When the request to enable Bluetooth returns
+                if (resultCode == Activity.RESULT_OK) {
+                    Intent serverIntent = new Intent(getApplicationContext(), GetDevice.class);
+                    startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
+
+                }
+                else {
+                    // User did not enable Bluetooth or an error occurred
+
+                    Toast.makeText(getApplicationContext(), "error enabling bluetooth",
+                            Toast.LENGTH_SHORT).show();
+                    finish();
+                }
+        }
+
+    }
+
+
+
 }
