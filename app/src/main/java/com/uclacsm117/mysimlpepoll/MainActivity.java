@@ -17,4 +17,9 @@ public class MainActivity extends AppCompatActivity {
         Intent create_poll_intent = new Intent(this,CreatePollActivity.class);
         startActivity(create_poll_intent);
     }
+
+    public void ConnectVote(View view){
+        Intent connect_to_vote = new Intent(this,ConnectToVote.class);
+        startActivity(connect_to_vote);
+    }
 }

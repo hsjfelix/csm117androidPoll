@@ -35,7 +35,16 @@
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
 
-        <activity android:name=".GetDevice"></activity>
+        <activity android:name=".GetDevice" />
+        <activity
+            android:name=".ConnectToVote"
+            android:label="@string/title_activity_connect_to_vote"
+            android:parentActivityName=".MainActivity"
+            android:theme="@style/AppTheme.NoActionBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.uclacsm117.mysimlpepoll.MainActivity" />
+        </activity>
     </application>
 
 </manifest>

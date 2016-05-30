@@ -22,6 +22,9 @@ import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.common.api.GoogleApiClient;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.os.Handler;
+import android.os.Message;
+import android.util.Log;
 
 import java.util.*;
 
@@ -31,15 +34,16 @@ public class CreatePollActivity extends AppCompatActivity {
      * ATTENTION: This was auto-generated to implement the App Indexing API.
      * See https://g.co/AppIndexing/AndroidStudio for more information.
      */
+    private static final boolean D = true;
 
     private static final int REQUEST_CONNECT_DEVICE = 1;
 
-
+    private static final String TAG = "Create Poll";
 
 
     private BluetoothAdapter mBluetoothAdapter;
 
-    private static final int REQUEST_ENABLE_BT = 3;
+    private static final int REQUEST_ENABLE_BT = 4;
 
     private class MapNode{
         public MapNode(LinearLayout l, EditText t){
@@ -58,6 +62,8 @@ public class CreatePollActivity extends AppCompatActivity {
 
     private ArrayList<String> selected_device_mac_addresses;
 
+    private BluetoothService m_bt_service = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -70,6 +76,13 @@ public class CreatePollActivity extends AppCompatActivity {
         // ATTENTION: This was auto-generated to implement the App Indexing API.
         // See https://g.co/AppIndexing/AndroidStudio for more information.
         client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
+
+        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (mBluetoothAdapter == null) {
+            Toast.makeText(this, "Bluetooth is not available", Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
     }
 
     public void AddPollOption(View view) {
@@ -133,60 +146,94 @@ public class CreatePollActivity extends AppCompatActivity {
         display_msg.setText(question_text.getText().toString() + "\n" + body);
         display_msg.setKeyListener(null);
 
-        main_create_poll.addView(display_msg);
+        Button broadcast_button = new Button(this);
+        broadcast_button.setText("start broadcasting");
+        ensureDiscoverable();
+        broadcast_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
 
-        setupBluetooth();
+                startBroadcast();
+
+            }
+        });
+
+
+        main_create_poll.addView(display_msg);
+        main_create_poll.addView(broadcast_button);
+
+
 
 
 
     }
 
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (!mBluetoothAdapter.isEnabled()) {
+            Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
+            // Otherwise, setup the chat session
+        } else {
+            if (m_bt_service == null) {
+                setupBluetooth();
+            }
+        }
+    }
+
+    @Override
+    protected synchronized void onResume() {
+        super.onResume();
+        if(m_bt_service != null){
+            if(m_bt_service.getState() == BluetoothService.STATE_NONE){
+                m_bt_service.start();
+            }
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if(m_bt_service != null){
+            m_bt_service.stop();
+        }
+    }
 
     public void setupBluetooth(){
-        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        if (mBluetoothAdapter == null) {
-
-            Toast.makeText(getApplicationContext(), "Bluetooth is not available", Toast.LENGTH_LONG).show();
-            finish();
-        }
-        else{
-            if (!mBluetoothAdapter.isEnabled()) {
-                Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-            }
-            else{
-                Intent serverIntent = new Intent(getApplicationContext(), GetDevice.class);
-                startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
-            }
-        }
-
+        m_bt_service = new BluetoothService(this,mHandler);
     }
 
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         switch (requestCode) {
             case REQUEST_CONNECT_DEVICE:
 
-                // When DeviceListActivity returns with a device to connect
-                if (resultCode == Activity.RESULT_OK) {
-                    this.selected_device_mac_addresses = data.getExtras().getStringArrayList(GetDevice.SELECTED_MAC_ADDRESSES);
-                    EditText display_msg = new EditText(this);
-                    String addresses_string = "\n";
-                    for(String a: this.selected_device_mac_addresses){
-                        addresses_string = addresses_string + a + "\n";
-                    }
-                    display_msg.setText(addresses_string);
-                    display_msg.setKeyListener(null);
-                    LinearLayout main_create_poll = (LinearLayout) findViewById(R.id.main_create_poll);
+//                // When DeviceListActivity returns with a device to connect
+//                if (resultCode == Activity.RESULT_OK) {
+//                    this.selected_device_mac_addresses = data.getExtras().getStringArrayList(GetDevice.SELECTED_MAC_ADDRESSES);
+//                    EditText display_msg = new EditText(this);
+//                    String addresses_string = "\n";
+//                    for(String a: this.selected_device_mac_addresses){
+//                        addresses_string = addresses_string + a + "\n";
+//                    }
+//                    display_msg.setText(addresses_string);
+//                    display_msg.setKeyListener(null);
+//                    LinearLayout main_create_poll = (LinearLayout) findViewById(R.id.main_create_poll);
+//
+//                    main_create_poll.addView(display_msg);
 
-                    main_create_poll.addView(display_msg);
+//                }
+                if(resultCode == Activity.RESULT_OK){
+                   //should never happens in this class
                 }
-                break;
+
             case REQUEST_ENABLE_BT:
                 // When the request to enable Bluetooth returns
                 if (resultCode == Activity.RESULT_OK) {
-                    Intent serverIntent = new Intent(getApplicationContext(), GetDevice.class);
-                    startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
+//                    Intent serverIntent = new Intent(getApplicationContext(), GetDevice.class);
+//                    startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
+                    setupBluetooth();
 
                 }
                 else {
@@ -198,7 +245,103 @@ public class CreatePollActivity extends AppCompatActivity {
                 }
         }
 
+
+
+
+
+
+
     }
+
+    private void ensureDiscoverable() {
+        if (mBluetoothAdapter.getScanMode() !=
+                BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE) {
+            Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+            discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 480);
+            startActivity(discoverableIntent);
+        }
+    }
+
+    /**
+     * Sends a message.
+     *
+     * @param message A string of text to send.
+     */
+    private void sendMessage(String message) {
+        // Check that we're actually connected before trying anything
+        if (m_bt_service.getState() != BluetoothService.STATE_CONNECTED) {
+            Toast.makeText(getApplicationContext(), "not connected", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Check that there's actually something to send
+        if (message.length() > 0) {
+            // Get the message bytes and tell the BluetoothChatService to write
+            byte[] send = message.getBytes();
+            m_bt_service.write(send);
+
+            // Reset out string buffer to zero and clear the edit text field
+
+        }
+    }
+
+    private void startBroadcast(){
+
+        sendMessage("got connection YO");
+    }
+
+    private final Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case Constants.MESSAGE_STATE_CHANGE:
+                    if(D) Log.i(TAG, "MESSAGE_STATE_CHANGE: " + msg.arg1);
+                    switch (msg.arg1) {
+                        case BluetoothService.STATE_CONNECTED:
+//                            mTitle.setText(R.string.title_connected_to);
+//                            mTitle.append(mConnectedDeviceName);
+//                            mConversationArrayAdapter.clear();
+                            break;
+                        case BluetoothService.STATE_CONNECTING:
+                            //mTitle.setText(R.string.title_connecting);
+                            break;
+                        case BluetoothService.STATE_LISTEN:
+                        case BluetoothService.STATE_NONE:
+                            //mTitle.setText(R.string.title_not_connected);
+                            break;
+                    }
+                    break;
+                case Constants.MESSAGE_WRITE:
+                    byte[] writeBuf = (byte[]) msg.obj;
+                    // construct a string from the buffer
+                    String writeMessage = new String(writeBuf);
+                    //mConversationArrayAdapter.add("Me:  " + writeMessage);
+                    break;
+                case Constants.MESSAGE_READ:
+//                    byte[] readBuf = (byte[]) msg.obj;
+//                    // construct a string from the valid bytes in the buffer
+//                    String readMessage = new String(readBuf, 0, msg.arg1);
+//                    if (readMessage.length() > 0) {
+//                        mConversationArrayAdapter.add(mConnectedDeviceName+":  " + readMessage);
+//                    }
+//                    break;
+                    break;
+                case Constants.MESSAGE_DEVICE_NAME:
+//                    // save the connected device's name
+//                    mConnectedDeviceName = msg.getData().getString(DEVICE_NAME);
+//                    Toast.makeText(getApplicationContext(), "Connected to "
+//                            + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
+//                    break;
+                    break;
+                case Constants.MESSAGE_TOAST:
+                    //if (!msg.getData().getString(TOAST).contains("Unable to connect device")) {
+                    Toast.makeText(getApplicationContext(), msg.getData().getString(Constants.TOAST),
+                            Toast.LENGTH_SHORT).show();
+                    //}
+                    break;
+            }
+        }
+    };
 
 
 

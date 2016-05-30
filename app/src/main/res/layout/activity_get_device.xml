@@ -55,12 +55,6 @@
         android:layout_height="wrap_content"
         android:text="@string/button_scan"
         />
-    <Button
-        android:id="@+id/button_submit_devices"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/button_submite_devices"
-        android:onClick="SubmitDeviceList"
-        />
+
 
 </LinearLayout>

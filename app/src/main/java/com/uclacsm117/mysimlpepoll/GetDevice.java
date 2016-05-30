@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.util.SparseBooleanArray;
 import android.view.View;
 import android.view.Window;
@@ -16,6 +17,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 
 import java.util.ArrayList;
@@ -38,7 +40,7 @@ public class GetDevice extends Activity {
      * Return Intent extra
      */
 
-    public static final String SELECTED_MAC_ADDRESSES = "selected_mac_addresses";
+    public static final String SELECTED_DEVICE = "selected_device";
     /**
      * Member fields
      */
@@ -79,15 +81,15 @@ public class GetDevice extends Activity {
 
         // Find and set up the ListView for paired devices
         ListView pairedListView = (ListView) findViewById(R.id.paired_devices);
-        pairedListView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
+//        pairedListView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
         pairedListView.setAdapter(pairedDevicesArrayAdapter);
-        //pairedListView.setOnItemClickListener(mDeviceClickListener);
+        pairedListView.setOnItemClickListener(mDeviceClickListener);
 
         // Find and set up the ListView for newly discovered devices
         ListView newDevicesListView = (ListView) findViewById(R.id.new_devices);
         newDevicesListView.setAdapter(mNewDevicesArrayAdapter);
-        newDevicesListView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
-        //newDevicesListView.setOnItemClickListener(mDeviceClickListener);
+//        newDevicesListView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
+        newDevicesListView.setOnItemClickListener(mDeviceClickListener);
 
         // Register for broadcasts when a device is discovered
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
@@ -197,8 +199,10 @@ public class GetDevice extends Activity {
                 setProgressBarIndeterminateVisibility(false);
                 setTitle(R.string.select_device);
                 if (mNewDevicesArrayAdapter.getCount() == 0) {
-                    String noDevices = getResources().getText(R.string.none_found).toString();
-                    mNewDevicesArrayAdapter.add(noDevices);
+//                    String noDevices = getResources().getText(R.string.none_found).toString();
+//                    mNewDevicesArrayAdapter.add(noDevices);
+                    Toast.makeText(getApplicationContext(), "no new devices found...",
+                            Toast.LENGTH_LONG).show();
                 }
             }
         }
@@ -206,38 +210,27 @@ public class GetDevice extends Activity {
 
 
 
-    private String getMAC(String info){
-        return info.substring(info.length() - 17);
-
-    }
-    public void SubmitDeviceList(View view) {
 
 
 
-        ListView paired_device_list = (ListView) findViewById(R.id.paired_devices);
-        ListView new_devices_list = (ListView) findViewById(R.id.new_devices);
-        SparseBooleanArray checked_paired = paired_device_list.getCheckedItemPositions();
-        SparseBooleanArray new_list = new_devices_list.getCheckedItemPositions();
 
-        ArrayList<String> device_address_list = new ArrayList<String>();
-        for (int i = 0; i < checked_paired.size(); i++) {
-            // Item position in adapter
-            int position = checked_paired.keyAt(i);
-            // Add sport if it is checked i.e.) == TRUE!
-            if (checked_paired.valueAt(i))
-                device_address_list.add(getMAC(pairedDevicesArrayAdapter.getItem(position)));
+    private AdapterView.OnItemClickListener mDeviceClickListener
+            = new AdapterView.OnItemClickListener() {
+        public void onItemClick(AdapterView<?> av, View v, int arg2, long arg3) {
+            // Cancel discovery because it's costly and we're about to connect
+            mBtAdapter.cancelDiscovery();
+
+            // Get the device MAC address, which is the last 17 chars in the View
+            String info = ((TextView) v).getText().toString();
+            String address = info.substring(info.length() - 17);
+
+            // Create the result Intent and include the MAC address
+            Intent intent = new Intent();
+            intent.putExtra(SELECTED_DEVICE, address);
+
+            // Set result and finish this Activity
+            setResult(Activity.RESULT_OK, intent);
+            finish();
         }
-        for (int i = 0; i < new_list.size(); i++) {
-            // Item position in adapter
-            int position = new_list.keyAt(i);
-            // Add sport if it is checked i.e.) == TRUE!
-            if (new_list.valueAt(i))
-                device_address_list.add(getMAC(mNewDevicesArrayAdapter.getItem(position)));
-        }
-
-        Intent intent = new Intent();
-        intent.putExtra(SELECTED_MAC_ADDRESSES,device_address_list);
-        setResult(Activity.RESULT_OK, intent);
-        finish();
-    }
+    };
 }
