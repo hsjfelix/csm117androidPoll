@@ -62,7 +62,9 @@ public class CreatePollActivity extends AppCompatActivity {
 
     private ArrayList<String> selected_device_mac_addresses;
 
-    private BluetoothService m_bt_service = null;
+    //private BluetoothService m_bt_service = null;
+
+    private ArrayList<BluetoothService> m_bt_services = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -177,7 +179,10 @@ public class CreatePollActivity extends AppCompatActivity {
             startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
             // Otherwise, setup the chat session
         } else {
-            if (m_bt_service == null) {
+//            if (m_bt_service == null) {
+//                setupBluetooth();
+//            }
+            if(m_bt_services == null){
                 setupBluetooth();
             }
         }
@@ -186,9 +191,16 @@ public class CreatePollActivity extends AppCompatActivity {
     @Override
     protected synchronized void onResume() {
         super.onResume();
-        if(m_bt_service != null){
-            if(m_bt_service.getState() == BluetoothService.STATE_NONE){
-                m_bt_service.start();
+//        if(m_bt_service != null){
+//            if(m_bt_service.getState() == BluetoothService.STATE_NONE){
+//                m_bt_service.start();
+//            }
+//        }
+        if(m_bt_services != null){
+            for(BluetoothService b : m_bt_services){
+                if(b.getState() == BluetoothService.STATE_NONE){
+                    b.start();
+                }
             }
         }
     }
@@ -196,13 +208,23 @@ public class CreatePollActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if(m_bt_service != null){
-            m_bt_service.stop();
+//        if(m_bt_service != null){
+//            m_bt_service.stop();
+//        }
+        if(m_bt_services != null){
+            for (BluetoothService b:m_bt_services){
+                b.stop();
+            }
         }
     }
 
     public void setupBluetooth(){
-        m_bt_service = new BluetoothService(this,mHandler);
+        m_bt_services = new ArrayList<BluetoothService>();
+        BluetoothService temp1 = new BluetoothService(this,mHandler,UUID.fromString("b7746a40-c758-4868-aa19-7ac6b3475dfc"));
+        BluetoothService temp2 = new BluetoothService(this,mHandler,UUID.fromString("2d64189d-5a2c-4511-a074-77f199fd0834"));
+        m_bt_services.add(temp1);
+        m_bt_services.add(temp2);
+//        m_bt_service = new BluetoothService(this,mHandler,UUID.fromString("b7746a40-c758-4868-aa19-7ac6b3475dfc"));
     }
 
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -269,16 +291,37 @@ public class CreatePollActivity extends AppCompatActivity {
      */
     private void sendMessage(String message) {
         // Check that we're actually connected before trying anything
-        if (m_bt_service.getState() != BluetoothService.STATE_CONNECTED) {
+//        if (m_bt_service.getState() != BluetoothService.STATE_CONNECTED) {
+//            Toast.makeText(getApplicationContext(), "not connected", Toast.LENGTH_SHORT).show();
+//            return;
+//        }
+
+        if(m_bt_services ==null){
             Toast.makeText(getApplicationContext(), "not connected", Toast.LENGTH_SHORT).show();
             return;
         }
+        boolean hasSerive = false;
+        for(BluetoothService b: m_bt_services){
+            if (b.getState() == BluetoothService.STATE_CONNECTED) {
+                hasSerive = true;
+            }
+        }
+        if(!hasSerive){
+            Toast.makeText(getApplicationContext(), "not connected", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+
 
         // Check that there's actually something to send
         if (message.length() > 0) {
             // Get the message bytes and tell the BluetoothChatService to write
             byte[] send = message.getBytes();
-            m_bt_service.write(send);
+//            m_bt_service.write(send);
+
+            for(BluetoothService b: m_bt_services){
+                b.write(send);
+            }
 
             // Reset out string buffer to zero and clear the edit text field
 

@@ -17,6 +17,9 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
+import java.util.ArrayList;
+import java.util.UUID;
+
 public class ConnectToVote extends AppCompatActivity {
 
     private BluetoothAdapter mBluetoothAdapter;
@@ -30,6 +33,8 @@ public class ConnectToVote extends AppCompatActivity {
 
 
     private BluetoothService m_bt_service = null;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -67,15 +72,24 @@ public class ConnectToVote extends AppCompatActivity {
     protected synchronized void onResume() {
         super.onResume();
         if(m_bt_service != null){
-            if(m_bt_service.getState() == BluetoothService.STATE_NONE){
-                m_bt_service.start();
-            }
+
+                if(m_bt_service.getState() == BluetoothService.STATE_NONE){
+                    m_bt_service.start();
+                }
+
+
         }
     }
 
     public void setupBluetooth(){
-        m_bt_service = new BluetoothService(getApplicationContext(),mHandler);
-
+//        m_bt_services  = new ArrayList<BluetoothService>();
+//        BluetoothService temp1 =
+//                new BluetoothService(getApplicationContext(),mHandler,UUID.fromString("b7746a40-c758-4868-aa19-7ac6b3475dfc"));
+//        BluetoothService temp2 =
+//                new BluetoothService(getApplicationContext(),mHandler,UUID.fromString("2d64189d-5a2c-4511-a074-77f199fd0834"));
+//        m_bt_services.add(temp1);
+//        m_bt_services.add(temp2);
+        m_bt_service = new BluetoothService(getApplicationContext(),mHandler,UUID.fromString("2d64189d-5a2c-4511-a074-77f199fd0834"));
     }
 
     @Override
@@ -84,6 +98,7 @@ public class ConnectToVote extends AppCompatActivity {
         if(m_bt_service != null)
         {
             m_bt_service.stop();
+
         }
     }
 
