@@ -16,6 +16,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
@@ -27,6 +28,7 @@ import android.os.Message;
 import android.util.Log;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class CreatePollActivity extends AppCompatActivity {
 
@@ -40,6 +42,9 @@ public class CreatePollActivity extends AppCompatActivity {
 
     private static final String TAG = "Create Poll";
 
+    private String q_text;
+
+    private String poll_str;
 
     private BluetoothAdapter mBluetoothAdapter;
 
@@ -65,6 +70,10 @@ public class CreatePollActivity extends AppCompatActivity {
     //private BluetoothService m_bt_service = null;
 
     private ArrayList<BluetoothService> m_bt_services = null;
+
+    private ConcurrentHashMap<String,Integer> count_map = new ConcurrentHashMap<String, Integer>();
+
+    boolean poll_started = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -131,11 +140,13 @@ public class CreatePollActivity extends AppCompatActivity {
 
     public void SubmitNewPoll(View view) {
         EditText question_text = (EditText) findViewById(R.id.question_text);
-        String q_text = question_text.getText().toString();
-        String body = "\007";
+        q_text = question_text.getText().toString();
+        String body = "";
         for (Map.Entry<Button, MapNode> entry : this.button_container_map.entrySet()) {
 
-            body = body + entry.getValue().text.getText().toString() + "\n" + "\007";
+            String option_name = entry.getValue().text.getText().toString() ;
+            body = body + '\007' + option_name;
+            count_map.put(option_name,0);
 
         }
 
@@ -161,15 +172,57 @@ public class CreatePollActivity extends AppCompatActivity {
         });
 
 
-        main_create_poll.addView(display_msg);
+        //main_create_poll.addView(display_msg);
+        poll_str = q_text +  body;
         main_create_poll.addView(broadcast_button);
-
-
-
 
 
     }
 
+    private void startBroadcast(){
+
+        sendMessage(Constants.MESSAGE_POLL+'\007'+poll_str);
+        if(!poll_started){
+            poll_started =true;
+            LinearLayout main_create_poll = (LinearLayout) findViewById(R.id.main_create_poll);
+            Button broadcast_result = new Button(this);
+            broadcast_result.setOnClickListener(
+                    new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+
+                            computeResult();
+
+                        }
+                    }
+            );
+            broadcast_result.setText("compute results");
+            main_create_poll.addView(broadcast_result);
+        }
+
+    }
+
+
+    private void computeResult(){
+        String result_msg= q_text + ':' +'\n';
+
+        for (Map.Entry<String, Integer> entry : this.count_map.entrySet()) {
+
+            int op_count = entry.getValue();
+            String op_name = entry.getKey();
+            result_msg = result_msg + op_name + ':' + op_count + '\n';
+
+        }
+
+        EditText result = new EditText(this);
+        result.setText(result_msg);
+        result.setKeyListener(null);
+        LinearLayout main_create_poll = (LinearLayout) findViewById(R.id.main_create_poll);
+        main_create_poll.removeAllViews();
+        main_create_poll.addView(result);
+        sendMessage(Constants.MESSAGE_RESULT+'\007'+result_msg);
+
+    }
 
     @Override
     protected void onStart() {
@@ -328,10 +381,9 @@ public class CreatePollActivity extends AppCompatActivity {
         }
     }
 
-    private void startBroadcast(){
 
-        sendMessage("got connection YO");
-    }
+
+
 
     private final Handler mHandler = new Handler() {
         @Override
@@ -361,13 +413,16 @@ public class CreatePollActivity extends AppCompatActivity {
                     //mConversationArrayAdapter.add("Me:  " + writeMessage);
                     break;
                 case Constants.MESSAGE_READ:
-//                    byte[] readBuf = (byte[]) msg.obj;
-//                    // construct a string from the valid bytes in the buffer
-//                    String readMessage = new String(readBuf, 0, msg.arg1);
-//                    if (readMessage.length() > 0) {
-//                        mConversationArrayAdapter.add(mConnectedDeviceName+":  " + readMessage);
-//                    }
+                    byte[] readBuf = (byte[]) msg.obj;
+                    // construct a string from the valid bytes in the buffer
+                    String readMessage = new String(readBuf, 0, msg.arg1);
+                    if (readMessage.length() > 0) {
+                        int val = count_map.get(readMessage);
+                        count_map.put(readMessage,val+1);
+                    }
 //                    break;
+
+
                     break;
                 case Constants.MESSAGE_DEVICE_NAME:
 //                    // save the connected device's name

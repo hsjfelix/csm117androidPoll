@@ -15,4 +15,5 @@
     <string name="none_found">none found</string>
     <string name="button_submite_devices">Submit</string>
     <string name="title_activity_connect_to_vote">ConnectToVote</string>
+    <string name="title_activity_vote">VoteActivity</string>
 </resources>

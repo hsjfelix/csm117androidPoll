@@ -242,6 +242,8 @@ public class BluetoothService {
         r.write(out);
     }
 
+
+
     /**
      * Indicate that the connection attempt failed and notify the UI Activity.
      */
@@ -486,6 +488,10 @@ public class BluetoothService {
                 Log.e(TAG, "Exception during write", e);
             }
         }
+
+
+
+
 
         public void cancel() {
             try {

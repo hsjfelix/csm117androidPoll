@@ -45,6 +45,15 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.uclacsm117.mysimlpepoll.MainActivity" />
         </activity>
+        <activity
+            android:name=".VoteActivity"
+            android:label="@string/title_activity_vote"
+            android:parentActivityName=".ConnectToVote"
+            android:theme="@style/AppTheme.NoActionBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.uclacsm117.mysimlpepoll.ConnectToVote" />
+        </activity>
     </application>
 
 </manifest>

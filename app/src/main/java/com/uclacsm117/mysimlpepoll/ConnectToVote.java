@@ -13,8 +13,10 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -31,10 +33,15 @@ public class ConnectToVote extends AppCompatActivity {
 
     private static final int REQUEST_ENABLE_BT = 2;
 
+    private static final int VOTE_RESULT = 3;
 
     private BluetoothService m_bt_service = null;
 
+    private String q_text;
 
+
+
+    private boolean voted = false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -115,7 +122,21 @@ public class ConnectToVote extends AppCompatActivity {
 
 
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        LinearLayout connect_to_vote_main = (LinearLayout) findViewById(R.id.main_connect_to_vote);
         switch (requestCode) {
+            case VOTE_RESULT:
+                Bundle b = data.getExtras();
+                sendMessage(b.getString(VoteActivity.SELECTION));
+
+
+                connect_to_vote_main.removeAllViews();
+
+                TextView wait_msg = new TextView(this);
+                wait_msg.setText("waiting for result");
+
+                connect_to_vote_main.addView(wait_msg);
+
+                break;
             case REQUEST_CONNECT_DEVICE:
 
 //                // When DeviceListActivity returns with a device to connect
@@ -135,7 +156,7 @@ public class ConnectToVote extends AppCompatActivity {
                 if(resultCode == Activity.RESULT_OK){
                     String device_address = data.getExtras().getString(GetDevice.SELECTED_DEVICE);
                     EditText display_msg = new EditText(this);
-                    LinearLayout connect_to_vote_main = (LinearLayout) findViewById(R.id.main_connect_to_vote);
+
                     display_msg.setKeyListener(null);
                     display_msg.setText(device_address);
                     connect_to_vote_main.addView(display_msg);
@@ -177,6 +198,7 @@ public class ConnectToVote extends AppCompatActivity {
     private final Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
+            LinearLayout connect_to_vote_main = (LinearLayout) findViewById(R.id.main_connect_to_vote);
             switch (msg.what) {
                 case Constants.MESSAGE_STATE_CHANGE:
                     if(D) Log.i(TAG, "MESSAGE_STATE_CHANGE: " + msg.arg1);
@@ -205,15 +227,56 @@ public class ConnectToVote extends AppCompatActivity {
                     String writeMessage = new String(writeBuf);
                     //mConversationArrayAdapter.add("Me:  " + writeMessage);
                     break;
+
+
                 case Constants.MESSAGE_READ:
                     byte[] readBuf = (byte[]) msg.obj;
                     // construct a string from the valid bytes in the buffer
-                    String readMessage = new String(readBuf, 0, msg.arg1);
+                    final String readMessage = new String(readBuf, 0, msg.arg1);
                    if (readMessage.length() > 0) {
 //                        mConversationArrayAdapter.add(mConnectedDeviceName+":  " + readMessage);
+                        if(!voted){
+                            voted =true;
 
-                       Toast.makeText(getApplicationContext(), readMessage,
-                               Toast.LENGTH_SHORT).show();
+
+//                            Intent intent = new Intent(getApplicationContext(),VoteActivity.class);
+//                            Bundle b = new Bundle();
+//                            b.putString(VoteActivity.QUESTION_OPTION_TEXT,readMessage);
+//
+//                            intent.putExtras(b);
+//                            startActivityForResult(intent, VOTE_RESULT);
+
+
+                            connect_to_vote_main.removeAllViews();
+                            Button bb = new Button(getApplicationContext());
+                            bb.setText("Vote");
+                            bb.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    Intent intent = new Intent(getApplicationContext(),VoteActivity.class);
+                                    Bundle b = new Bundle();
+                                    b.putString(VoteActivity.QUESTION_OPTION_TEXT,readMessage);
+
+                                    intent.putExtras(b);
+                                    startActivityForResult(intent, VOTE_RESULT);
+                                        }
+                                    });
+                            Toast.makeText(getApplicationContext(), readMessage,
+                           Toast.LENGTH_SHORT).show();
+                            connect_to_vote_main.addView(bb);
+
+                        }
+                       else{
+                            String []temp_arr = readMessage.split("\007");
+                            if(temp_arr[0].equals(Constants.MESSAGE_RESULT)){
+                                connect_to_vote_main.removeAllViews();
+                                EditText result_t = new EditText(getApplicationContext());
+                                result_t.setOnClickListener(null);
+                                result_t.setText(temp_arr[1]);
+                                connect_to_vote_main.addView(result_t);
+                            }
+                        }
+
 
 
                    }
